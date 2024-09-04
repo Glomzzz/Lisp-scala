@@ -35,11 +35,13 @@ enum Expr {
   def raw: String = {
     this match
       case Str(value,_) => s"\"$value\""
-      case Com(single :: Nil,_) => single.raw
-      case Com(exprs,_) => s"(${exprs.map(_.raw).mkString(" ")})"
-      case Def(name, expr,_) => s"(define $name ${expr.raw})"
-      case App(app, args,_) => s"($app ${args.map(_.raw).mkString(" ")})"
-      case _ => toString
+      case Var(name,_) => name
+      case Num(value,_) => value.toString
+      case Abs(abs,_) => abs.toString
+      case Com(single :: Nil,_) => single.toString
+      case Com(exprs,_) => s"(${exprs.mkString(" ")})"
+      case Def(name, expr,_) => s"(define $name $expr)"
+      case App(app, args,_) => s"($app ${args.mkString(" ")})"
   }
 
   override def toString: String = {

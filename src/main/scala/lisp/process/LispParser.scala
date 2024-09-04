@@ -44,9 +44,9 @@ object LispParser {
 
   def string = str.stateMap((s, st) => Elem.Str(st.index,s))
 
-  def atom: Parser[Elem] = string or variable or number or Parser(s => com.run(s))
+  def elem: Parser[Elem] = string or variable or number or Parser(s => com.run(s))
 
-  def com = (leftParen skipThen (blank skipThen atom).many thenSkip rightParen).stateMap((es, s) => Elem.Com(s.index,es:_*))
+  def com = (leftParen skipThen (blank skipThen elem).many thenSkip rightParen).stateMap((es, s) => Elem.Com(s.index,es:_*))
 
-  def program = atom.all(blank)
+  def program = elem.all(blank)
 }

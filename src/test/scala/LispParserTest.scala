@@ -37,7 +37,7 @@ class LispParserTest extends AnyFunSuiteLike {
       case Ok(value) =>
       case e:Err => e.error
     }
-    (blank skipThen atom).parse("  #comment\n123123 ") match {
+    (blank skipThen elem).parse("  #comment\n123123 ") match {
       case Ok(value) => assertResult(Elem.num(123123))(value)
       case e:Err => e.error
     }
@@ -147,12 +147,12 @@ class LispParserTest extends AnyFunSuiteLike {
     }
   }
 
-  test("testAtom") {
-    atom.parse("123") match {
+  test("testElem") {
+    elem.parse("123") match {
       case Ok(value) => assertResult(Elem.num(123))(value)
       case e:Err => e.error
     }
-    atom.parse("abc") match {
+    elem.parse("abc") match {
       case Ok(value) => assertResult(Elem.variable("abc"))(value)
       case e:Err => e.error
     }

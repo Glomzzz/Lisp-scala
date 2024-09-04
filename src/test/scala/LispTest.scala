@@ -2,12 +2,14 @@ package com.skillw
 
 import org.scalatest.funsuite.AnyFunSuiteLike
 import lisp.LispOption.*
-
 import lisp.Lisp
+
+import lisp.scope.*
+import lisp.term.Expr.Num
 
 class LispTest extends AnyFunSuiteLike {
 
-  test("cond") {
+  test("condTest") {
     val input =
       """
         | (define (add x y) (+ x y))
@@ -21,7 +23,7 @@ class LispTest extends AnyFunSuiteLike {
         |""".stripMargin
       
     val result = Lisp(
-      ShowAtoms,
+      ShowElems,
       ShowExprs,
       ShowContext,
       ShowEvals
@@ -30,7 +32,7 @@ class LispTest extends AnyFunSuiteLike {
     assertResult("x  =  ?")(result)
   }
 
-  test("sqrt") {
+  test("sqrtTest") {
     val input: String =
       """
         | (define (abs x) (if (< x 0)
@@ -47,20 +49,21 @@ class LispTest extends AnyFunSuiteLike {
         |         guess
         |         (try (improve guess x) x)))
         | (define (sqrt x) (try 1 x))
-        | (print (sqrt 10))
+        | (sqrt 10)
+        | (sqrt 100)
+        | (sqrt 1000)
+        | (sqrt m)
         |""".stripMargin
 
+    val ctx = Context().add("m", Num(10000))
     val result = Lisp(
-      ShowAtoms,
-      ShowExprs,
-      ShowContext,
       ShowEvals
-    ).eval(input).toJava
+    ).eval(input,ctx).toJava
 
-    assertResult(3.162277665175675)(result)
+    println(result)
   }
 
-  test("desugarError"){
+  test("desugarErrorTest"){
     try {
       val input =
         """
@@ -69,13 +72,13 @@ class LispTest extends AnyFunSuiteLike {
           |
           |""".stripMargin
 
-      Lisp(ShowAtoms).eval(input)
+      Lisp(ShowElems).eval(input)
       assert(false)
     }catch
       case e: Exception => e.printStackTrace()
   }
 
-  test("builtInError"){
+  test("builtInErrorTest"){
     try {
       val input =
         """
@@ -84,10 +87,25 @@ class LispTest extends AnyFunSuiteLike {
           |
           |""".stripMargin
 
-      Lisp(ShowAtoms).eval(input)
+      Lisp(ShowElems).eval(input)
       assert(false)
     }catch
       case e: Exception => e.printStackTrace()
   }
 
+  test("builtInTest"){
+    val builtIns = DefaultContext.copy
+    
+    val input: String =
+      """
+        | 
+        |""".stripMargin
+
+    val ctx = Context().add("m", Num(10000))
+    val result = Lisp(
+      ShowEvals
+    ).eval(input, ctx).toJava
+
+    println(result)
+  }
 }

@@ -7,7 +7,7 @@ import lisp.term.Expr.*
 import lisp.util.*
 
 
-case class Context(var vars: LinkedVar = LinkedVar.Nil) {
+case class Context(var vars: LinkedVar = LinkedVar.Nil,builtIn:BuiltInContext = DefaultContext) {
 
   def get(v:Var): Result[Expr] =
     vars.find(v.name) match
@@ -16,7 +16,7 @@ case class Context(var vars: LinkedVar = LinkedVar.Nil) {
             add(name, result)
             result
           )
-        case None => builtIns.find(_._1 == v.name).map(_._2) match
+        case None => builtIn.builtIns.find(_._1 == v.name).map(_._2) match
           case Some(value) => value.ok
           case None => Err.of(s"Undefined variable: ${v.name}",v.index)
           

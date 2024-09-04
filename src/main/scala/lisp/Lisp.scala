@@ -8,7 +8,7 @@ import lisp.term.Expr.*
 import lisp.term.Applicable.Lambda
 
 enum LispOption {
-  case ShowAtoms
+  case ShowElems
   case ShowExprs
   case ShowContext
   case ShowEvals
@@ -35,16 +35,16 @@ class Lisp(options: LispOption*) {
       case _ => vars
   }
 
-  def eval(input: String, ctx: Map[String, Expr] = Map()): Expr = {
-    val atoms = program.parse(input).unwrap(input)
+  def eval(input: String, ctx: Context = Context()): Expr = {
+    val elems = program.parse(input).unwrap(input)
 
-    option(ShowAtoms) {
+    option(ShowElems) {
       println()
-      println("Atoms:")
-      atoms.foreach(println)
+      println("Elems:")
+      elems.foreach(println)
     }
 
-    val exprs = atoms.map(_.desugar).sequence.unwrap(input)
+    val exprs = elems.map(_.desugar).sequence.unwrap(input)
 
     option(ShowExprs) {
       println()
@@ -52,7 +52,6 @@ class Lisp(options: LispOption*) {
       exprs.foreach(println)
     }
 
-    val ctx = Context()
     var result = Com()
     println()
     println("Evaluating:")
@@ -66,6 +65,7 @@ class Lisp(options: LispOption*) {
           case (name, value) => println(s"       >      $name -> $value")
         }
         println(s" => $result")
+        println()
       }
       else {
         option(ShowContext) {
@@ -75,11 +75,13 @@ class Lisp(options: LispOption*) {
           ctx.unduplicates.filter((name, _) => used.contains(name)).foreach{
             case (name, value) => println(s"       >      $name -> $value")
           }
+          println()
         }
         option(ShowEvals) {
           println()
           println(s" >> $expr")
           println(s" => $result")
+          println()
         }
       }
     })
