@@ -1,159 +1,188 @@
 package com.skillw
 
 import org.scalatest.funsuite.AnyFunSuiteLike
-import LispParser.*
+import lisp.process.LispParser.*
+import lisp.util.*
 
-import Expr.*
-
+import _root_.com.skillw.lisp.term.Elem
 
 class LispParserTest extends AnyFunSuiteLike {
 
-  test("testCombinator") {
-    combinator.parse("(a b c)") match {
-      case Ok(value) =>
-        assertResult(Combination(List(Var("a"), Var("b"), Var("c"))))(value)
-      case e:Err => e.error
-    }
 
-    combinator.parse("((lambda (b) b) 1)") match {
-      case Ok(value) =>
-        println(value)
-        assertResult(Combination(List(Lam(List("b"),Var("b")),Num(1.0))))(value)
-      case e:Err => e.error
-    }
 
-    combinator.parse("((define (a b) b) 1 )") match
+  test("testWhitespace") {
+    whitespace.parse("  ") match {
       case Ok(value) =>
-        assertResult(Combination(List(Def("a", Lam(List("b"), Var("b"))), Num(1.0))))(value)
-      case e:Err => e.error
-
-    combinator.parse("define (a f x) (f (f x))") match
-      case Ok(value) =>
-        println(value)
-      case e:Err => e.error
-  }
-
-  test("testProgram") {
-    val pgm =
-      """
-        | (define (a f x) (f (f x)) )
-        | (define (bb x) (a a x))
-        | (bb 1)
-        |""".stripMargin
-    program.parse(pgm) match {
-      case Ok(value) =>
-        println(value)
-        
-        assertResult(
-          List(Def("a", Lam(List("f", "x"), Combination(List(Var("f"), Combination(List(Var("f"), Var("x"))))))), Def("bb", Lam(List("x"), Combination(List(Var("a"), Var("a"), Var("x"))))), Combination(List(Var("bb"), Num(1.0))))
-        )(value)
-      case e:Err => e.error
-    }
-
-  }
-
-  test("testParams") {
-    params.parse("(a b c)") match {
-      case Ok(value) =>
-        assertResult (List("a","b","c")) (value)
       case e:Err => e.error
     }
   }
 
-  test("testLiteral") {
-    literal.parse("1.0") match {
-      case Ok(Num(value)) => assert(value == 1.0)
-      case _ => assert(false)
-    }
-    literal.parse("\"hello world\"") match {
-      case Ok(Str(value)) => assert(value == "hello world")
-      case _ => assert(false)
-    }
-  }
-
-  test("testCall") {
-    call.parse("a") match {
-      case Ok(value) => assertResult(Var("a"))(value)
-      case e:Err => e.error
-    }
-
-    call.parse("laMbda (a b) (a b)") match {
+  test("testComment") {
+    comment.parse("#comment\n  ") match {
       case Ok(value) =>
-        assertResult(Lam(List("a", "b"),Combination(List(Var("a"),Var("b")))))(value)
       case e:Err => e.error
     }
-
-    call.parse("defiNe (a b) (a b)") match {
+    (comment thenSkip comment).parse("#comment\n#comment\n  ") match {
       case Ok(value) =>
-        assertResult(Def("a", Lam(List("b"), Combination(List(Var("a"), Var("b"))))))(value)
       case e:Err => e.error
     }
   }
 
-  test("testLambda") {
-    lambda.parse("(a b c) (a b c)") match {
+  test("testBlank"){
+    blank.parse("  ") match {
       case Ok(value) =>
-        assertResult(Lam(List("a", "b", "c"),Combination(List(Var("a"),Var("b"), Var("c")))))(value)
       case e:Err => e.error
     }
-  }
-
-  test("testDefine") {
-    define.parse("(a) (a)") match {
+    blank.parse("  #comment\n  ") match {
       case Ok(value) =>
-        assertResult(Def("a", Var("a")))(value)
       case e:Err => e.error
     }
-    define.parse("(a) (b)") match {
-      case Ok(value) =>  assertResult(Def("a", Var("b")))(value)
-      case e:Err => e.error
-    }
-
-    (define.parse("(a b) (b)"), define.parse("(a b) b")) match {
-      case (Ok(v1), Ok(v2)) =>
-        assertResult(v1)(v2)
-      case (e1:Err, e2:Err) => e1.combine(e2).error
-      case (_, e:Err) => e.error
-      case (e:Err, _) => e.error
-    }
-  }
-
-  test("testWhite") {
-    white.parse("  ") match {
-      case Ok(value) => assert(value.mkString == "  ")
+    (blank skipThen atom).parse("  #comment\n123123 ") match {
+      case Ok(value) => assertResult(Elem.num(123123))(value)
       case e:Err => e.error
     }
   }
 
-
-  test("testStr") {
-    str.parse("\"hello world\"") match {
-      case Ok(value) => assert(value == "hello world")
+  test("testDigits") {
+    digits.parse("123") match {
+      case Ok(value) => assertResult("123")(value)
       case e:Err => e.error
     }
+    digits.parse("0001234  ") match {
+      case Ok(value) => assertResult("0001234")(value)
+      case e:Err => e.error
+    }
+    digits.parse(" 0001234  ") match {
+      case Ok(value) => assert(false)
+      case e:Err =>
+    }
+
+  }
+
+  test("testNat") {
+    nat.parse("123") match {
+      case Ok(value) => assertResult(123)(value)
+      case e:Err => e.error
+    }
+    nat.parse("0001234  ") match {
+      case Ok(value) => assertResult(1234)(value)
+      case e:Err => e.error
+    }
+  }
+
+  test("testReal") {
+    real.parse("123.123") match {
+      case Ok(value) => assertResult(123.123)(value)
+      case e:Err => e.error
+    }
+    real.parse("123.1") match {
+      case Ok(value) => assertResult(123.1)(value)
+      case e:Err => e.error
+    }
+    real.parse("123") match {
+      case Ok(value) => assertResult(123)(value)
+      case e:Err => e.error
+    }
+    real.parse("000123") match {
+      case Ok(value) => assertResult(123)(value)
+      case e:Err => e.error
+    }
+    real.parse("000123.000123") match {
+      case Ok(value) => assertResult(123.000123)(value)
+      case e:Err => e.error
+    }
+
   }
 
   test("testName") {
-    name.parse("h") match {
-      case Ok(value) => assert(value == "h")
-      case e:Err => e.error
-    }
-    name.parse("hello world") match {
-      case Ok(value) => assert(value == "hello")
-      case e:Err => e.error
-    }
-    name.parse("hello1 world") match {
-      case Ok(value) => assert(value == "hello1")
-      case e:Err => e.error
-    }
-    name.parse("_1hello world") match {
-      case Ok(value) => assert(value == "_1hello")
-      case e:Err => e.error
-    }
-    name.parse("1hello world") match {
+    name.parse("1aBc") match {
       case Ok(value) => assert(false)
-      case e:Err => assert(true)
+      case e:Err =>
+    }
+    name.parse("!aBc") match {
+      case Ok(value) => assertResult("!abc")(value)
+      case e:Err => e.error
+    }
+    (name skipThen blank skipThen name).parse("abc asddas  ") match {
+      case Ok(value) => assertResult("asddas")(value)
+      case e:Err => e.error
+    }
+
+  }
+
+  test("testLeftParen") {
+    leftParen.parse("(") match {
+      case Ok(value) => assertResult('(')(value)
+      case e:Err => e.error
+    }
+  }
+
+  test("testRightParen") {
+    rightParen.parse(")") match {
+      case Ok(value) => assertResult(')')(value)
+      case e:Err => e.error
+    }
+  }
+
+  // Program
+
+  test("testNumber") {
+    number.parse("123") match {
+      case Ok(value) => assertResult(Elem.num(123))(value)
+      case e:Err => e.error
+    }
+  }
+
+  test("testVariable") {
+    variable.parse("aBc!") match {
+      case Ok(value) => assertResult(Elem.variable("abc!"))(value)
+      case e:Err => e.error
+    }
+  }
+
+  test("testCombination") {
+    com.parse("(abc 123)") match {
+      case Ok(value) => assertResult(Elem.com(Elem.variable("abc"), Elem.num(123)))(value)
+      case e:Err => e.error
+    }
+  }
+
+  test("testAtom") {
+    atom.parse("123") match {
+      case Ok(value) => assertResult(Elem.num(123))(value)
+      case e:Err => e.error
+    }
+    atom.parse("abc") match {
+      case Ok(value) => assertResult(Elem.variable("abc"))(value)
+      case e:Err => e.error
+    }
+  }
+
+  test("testProgram") {
+    program.parse(" (abc 123)") match {
+      case Ok(value) => assertResult(List(Elem.com(Elem.variable("abc"), Elem.num(123))))(value)
+      case e:Err => e.error
+    }
+    program.parse("abc 123 (abc (abc (abc (abc 123))))  ") match {
+      case Ok(value) => assertResult(List(Elem.variable("abc"), Elem.num(123.0), Elem.com(Elem.variable("abc"), Elem.com(Elem.variable("abc"), Elem.com(Elem.variable("abc"), Elem.com(Elem.variable("abc"), Elem.num(123.0)))))))(value)
+      case e:Err => e.error
+    }
+
+    val pgm =
+      """
+        | (define (square x)
+        |  (* x x))
+        |
+        | (a (- 2 1))
+        | (b (- 3 1))
+        |
+        |""".stripMargin
+
+    program.parse(pgm) match {
+      case Ok(value) => assertResult(List(Elem.com(Elem.variable("define"), Elem.com(Elem.variable("square"), Elem.variable("x")), Elem.com(Elem.variable("*"), Elem.variable("x"), Elem.variable("x"))), Elem.com(Elem.variable("a"), Elem.com(Elem.variable("-"), Elem.num(2.0), Elem.num(1.0))), Elem.com(Elem.variable("b"), Elem.com(Elem.variable("-"), Elem.num(3.0), Elem.num(1.0)))))(value)
+      case e:Err =>  e.error
     }
   }
 
 }
+
